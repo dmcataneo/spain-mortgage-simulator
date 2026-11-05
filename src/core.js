@@ -98,6 +98,9 @@
       }
       balance -= principalPaid;
       remaining -= 1;
+      // The installment actually charged this month. A 'reduce-payment' extra
+      // recasts the installment below, but only from the NEXT month on.
+      const chargedPayment = payment;
 
       let extraAmount = 0;
       const monthExtras = extraByMonth.get(m);
@@ -119,11 +122,11 @@
       totalInterest += interest;
       totalPrincipal += principalPaid;
       totalExtra += extraAmount;
-      totalPaid += payment + extraAmount;
+      totalPaid += chargedPayment + extraAmount;
       rows.push({
         month: m,
         rate: round2(rate),
-        payment: round2(payment),
+        payment: round2(chargedPayment),
         interest: round2(interest),
         principal: round2(principalPaid),
         extra: round2(extraAmount),
