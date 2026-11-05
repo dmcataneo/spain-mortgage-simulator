@@ -99,4 +99,7 @@ canvas.chart{width:100%;display:block}
 @media (max-width:480px){
   .add-extra{grid-template-columns:64px 1fr auto}
   .add-extra select{grid-column:1/-1}
+  .tile{padding:10px 12px}
+  .tile .v{font-size:18px}
+  .tile.hero .v{font-size:24px}
 }
