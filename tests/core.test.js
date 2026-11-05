@@ -183,3 +183,30 @@ test('euribor path never invents values past the last official month', () => {
   // months beyond the series must hold the last official value, not a fabricated one
   assert.ok(path.slice(6).every((v) => v === data[data.length - 1][1]));
 });
+
+test('money identity: paid always equals principal + interest + extras', () => {
+  // Regression: a 'reduce-payment' extra recast the installment for the same
+  // month it was charged, quietly dropping the difference from the totals.
+  const cases = [
+    { principal: 240000, months: 300, extras: [{ month: 36, amount: 10000, mode: 'reduce-payment' }] },
+    { principal: 240000, months: 300, extras: [{ month: 36, amount: 20000, mode: 'reduce-term' }] },
+    { principal: 180000, months: 240, extras: [{ month: 12, amount: 5000, mode: 'reduce-payment' }, { month: 60, amount: 8000, mode: 'reduce-term' }] },
+    { principal: 300000, months: 360, extras: [] },
+  ];
+  for (const c of cases) {
+    const ratePath = M.buildRatePath({ months: c.months, type: 'fixed', fixedTin: 3.1 });
+    const s = M.buildSchedule({ principal: c.principal, months: c.months, ratePath, extras: c.extras });
+    const t = s.totals;
+    assert.ok(Math.abs(t.paid - t.principal - t.interest - t.extra) < 0.01, `identity broken: ${JSON.stringify(t)}`);
+    assert.ok(Math.abs(t.principal + t.extra - c.principal) < 0.01, 'principal + extras must repay the loan');
+  }
+});
+
+test('a reduce-payment extra changes the installment from the next month, not the same one', () => {
+  const months = 300;
+  const ratePath = M.buildRatePath({ months, type: 'fixed', fixedTin: 4.139 });
+  const base = M.buildSchedule({ principal: 240000, months, ratePath, extras: [] });
+  const s = M.buildSchedule({ principal: 240000, months, ratePath, extras: [{ month: 36, amount: 10000, mode: 'reduce-payment' }] });
+  assert.equal(s.rows[35].payment, base.rows[35].payment); // month of the extra: old installment
+  assert.ok(s.rows[36].payment < base.rows[36].payment - 1); // next month: recast lower
+});
