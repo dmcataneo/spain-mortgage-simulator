@@ -17,8 +17,8 @@ h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
 .card-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 .card-head h2{margin:0}
 .layout{display:grid;grid-template-columns:340px minmax(0,1fr);gap:16px;align-items:start}
-.side{display:grid;gap:16px}
-.stage{display:grid;gap:16px}
+.side{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+.stage{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
 .btn{font:inherit;font-weight:600;border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 14px;cursor:pointer;color:var(--ink)}
 .btn:hover:not(:disabled){border-color:#c9c6bb;background:#faf9f5}
 .btn.small{padding:5px 10px;font-size:13.5px}
@@ -70,12 +70,13 @@ canvas.chart{width:100%;display:block}
 .table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:13.5px}
 .table th{position:sticky;top:0;background:var(--card);text-align:right;color:var(--muted);font-weight:650;padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
 .table td{text-align:right;padding:5px 10px;border-bottom:1px solid #f0eee6;white-space:nowrap}
+#costs-table td.l,#costs-table th.l{white-space:normal}
 .table td.l,.table th.l{text-align:left}
 .table tr.extra-row td{background:#fdf6ec}
 .table tfoot td{font-weight:750;border-top:2px solid var(--line);border-bottom:0}
 
 .add-extra{display:grid;grid-template-columns:64px 1fr auto auto;gap:6px}
-.add-extra input,.add-extra select{font:inherit;padding:7px 8px;border:1px solid var(--line);border-radius:9px;width:100%}
+.add-extra input,.add-extra select{font:inherit;padding:7px 8px;border:1px solid var(--line);border-radius:9px;width:100%;min-width:0}
 .extra-item{display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--line);border-radius:9px;padding:6px 10px;margin-bottom:6px;font-size:13.5px}
 .extra-item button{border:0;background:none;color:var(--muted);cursor:pointer;font-size:15px;padding:0 2px}
 .extra-item button:hover{color:var(--bad)}
@@ -91,6 +92,11 @@ canvas.chart{width:100%;display:block}
 .foot a:hover{text-decoration:underline}
 
 @media (max-width:900px){
-  .layout{grid-template-columns:1fr}
+  .layout{grid-template-columns:minmax(0,1fr)}
   .tile.hero{grid-column:span 1}
+}
+
+@media (max-width:480px){
+  .add-extra{grid-template-columns:64px 1fr auto}
+  .add-extra select{grid-column:1/-1}
 }
