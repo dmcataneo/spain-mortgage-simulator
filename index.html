@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spain Mortgage Simulator - payments, taxes and Euribor scenarios</title>
+<meta name="description" content="Simulate a Spanish mortgage: French amortization, fixed and Euribor-linked variable rates, early repayments, purchase taxes by region and affordability. Runs in the browser, no install.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231d4ed8'/%3E%3Ctext x='16' y='21.5' font-family='Georgia,serif' font-size='13' font-weight='700' fill='%23fff' text-anchor='middle' letter-spacing='.5'%3EDC%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#1d4ed8"/><text x="16" y="21.5" font-family="Georgia,serif" font-size="13" font-weight="700" fill="#fff" text-anchor="middle" letter-spacing=".5">DC</text></svg>    <div>
+      <h1>Spain Mortgage Simulator</h1>
+      <p>French amortization, Euribor scenarios, purchase taxes and early repayments.</p>
+    </div>
+  </div>
+  <div class="top-actions">
+    <div class="scenario-tabs" role="tablist" aria-label="Scenarios">
+      <button class="stab is-on" data-slot="0" role="tab">A</button>
+      <button class="stab" data-slot="1" role="tab">B</button>
+      <button class="stab" data-slot="2" role="tab">C</button>
+      <button class="stab wide" id="compare" role="tab">Compare</button>
+    </div>
+    <button class="btn" id="share" title="Copy a link to this exact setup">Copy link</button>
+  </div>
+</header>
+
+<main class="layout">
+  <aside class="side">
+    <section class="card">
+      <h2>Purchase</h2>
+      <label class="field"><span>Property price</span>
+        <span class="money"><input type="number" id="price" min="0" step="5000" value="300000"><i>€</i></span>
+      </label>
+      <label class="field"><span>Region</span><select id="region"></select></label>
+      <div class="seg" role="radiogroup" aria-label="Home type">
+        <button class="opt is-on" id="type-resale" role="radio" aria-checked="true">Resale (ITP)</button>
+        <button class="opt" id="type-new" role="radio" aria-checked="false">New build (VAT + AJD)</button>
+      </div>
+      <label class="field"><span>Down payment</span>
+        <span class="money"><input type="number" id="down" min="0" step="1000" value="60000"><i>€</i></span>
+      </label>
+      <p class="hint" id="ltv-hint"></p>
+    </section>
+
+    <section class="card">
+      <h2>Loan</h2>
+      <label class="field"><span>Amount</span>
+        <span class="money"><input type="number" id="principal" min="0" step="1000"><i>€</i></span>
+      </label>
+      <label class="field"><span>Term (years)</span><input type="number" id="years" min="1" max="40" step="1" value="25"></label>
+      <label class="field"><span>Opening commission</span>
+        <span class="money"><input type="number" id="opening" min="0" max="3" step="0.1" value="0"><i>%</i></span>
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>Interest rate</h2>
+      <div class="seg three" role="radiogroup" aria-label="Rate type">
+        <button class="opt is-on" id="rate-fixed" role="radio" aria-checked="true">Fixed</button>
+        <button class="opt" id="rate-variable" role="radio" aria-checked="false">Variable</button>
+        <button class="opt" id="rate-mixed" role="radio" aria-checked="false">Mixed</button>
+      </div>
+      <label class="field" id="row-fixed"><span>Fixed rate (TIN)</span>
+        <span class="money"><input type="number" id="tin" min="0" max="15" step="0.05" value="2.9"><i>%</i></span>
+      </label>
+      <div id="variable-fields" hidden>
+        <label class="field" id="row-initial"><span>Initial fixed rate</span>
+          <span class="money"><input type="number" id="initial-tin" min="0" max="15" step="0.05" value="2.4"><i>%</i></span>
+        </label>
+        <label class="field" id="row-initial-years"><span>Initial fixed period (years)</span>
+          <input type="number" id="initial-years" min="0" max="10" step="1" value="3">
+        </label>
+        <label class="field"><span>Spread over Euribor</span>
+          <span class="money"><input type="number" id="spread" min="0" max="5" step="0.05" value="0.9"><i>+ %</i></span>
+        </label>
+        <label class="field"><span>Rate review</span>
+          <select id="review"><option value="12">Every 12 months</option><option value="6">Every 6 months</option></select>
+        </label>
+        <div class="euribor-box">
+          <div class="euribor-head">
+            <span>12M Euribor</span>
+            <span class="euribor-value" id="euribor-current"></span>
+          </div>
+          <label class="field"><span>Start value</span>
+            <select id="euribor-mode">
+              <option value="latest">Latest official month</option>
+              <option value="pick">Pick a month</option>
+              <option value="manual">Type it in</option>
+            </select>
+          </label>
+          <label class="field" id="row-euribor-pick" hidden><span>Month</span><input type="month" id="euribor-pick"></label>
+          <label class="field" id="row-euribor-manual" hidden><span>Value</span>
+            <span class="money"><input type="number" id="euribor-manual" min="-1" max="12" step="0.01"><i>%</i></span>
+          </label>
+          <label class="field"><span>Then assume it</span>
+            <select id="euribor-assumption">
+              <option value="constant">Stays flat</option>
+              <option value="history">Replay real history</option>
+              <option value="shock">Shock it</option>
+            </select>
+          </label>
+          <label class="field" id="row-history-from" hidden><span>Replay from</span><input type="month" id="history-from"></label>
+          <label class="field" id="row-shock" hidden><span>Shock</span>
+            <span class="money"><input type="number" id="shock" min="-2" max="6" step="0.5" value="2"><i>+ pp</i></span>
+          </label>
+          <p class="hint" id="euribor-note"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Early repayments</h2>
+      <div id="extras"></div>
+      <div class="add-extra">
+        <input type="number" id="extra-year" min="1" max="40" step="1" placeholder="Year" title="Year of the repayment">
+        <input type="number" id="extra-amount" min="0" step="1000" placeholder="Amount €" title="Amount">
+        <select id="extra-mode" title="What to do with it">
+          <option value="reduce-term">Cut the term</option>
+          <option value="reduce-payment">Cut the payment</option>
+        </select>
+        <button class="btn" id="extra-add">Add</button>
+      </div>
+      <p class="hint">Recurring? Add one per year, e.g. a bonus each December.</p>
+    </section>
+
+    <section class="card">
+      <h2>Household income</h2>
+      <label class="field"><span>Net monthly income</span>
+        <span class="money"><input type="number" id="income" min="0" step="100" value="0"><i>€</i></span>
+      </label>
+      <p class="hint">Optional. Used only for the effort gauge (payment / income).</p>
+    </section>
+  </aside>
+
+  <section class="stage">
+    <div class="tiles" id="tiles"></div>
+
+    <section class="card" id="compare-card" hidden>
+      <h2>Scenario comparison</h2>
+      <div class="table-wrap"><table class="table" id="compare-table"></table></div>
+    </section>
+
+    <section class="card">
+      <h2>Balance and payments</h2>
+      <canvas id="chart-balance" height="220" role="img" aria-label="Outstanding balance and cumulative interest over time"></canvas>
+    </section>
+
+    <section class="card" id="rate-card" hidden>
+      <h2>Rate path</h2>
+      <canvas id="chart-rate" height="140" role="img" aria-label="Applied interest rate over time"></canvas>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Purchase costs</h2>
+        <span class="hint" id="costs-note"></span>
+      </div>
+      <div class="table-wrap"><table class="table" id="costs-table"></table></div>
+      <details class="overrides">
+        <summary>Adjust the figures (tax rate, fees)</summary>
+        <div class="override-grid">
+          <label class="field"><span id="tax-label">Tax rate</span><span class="money"><input type="number" id="tax-override" min="0" max="25" step="0.1" placeholder="auto"><i>%</i></span></label>
+          <label class="field" id="row-ajd" hidden><span>AJD rate</span><span class="money"><input type="number" id="ajd-override" min="0" max="5" step="0.1" placeholder="auto"><i>%</i></span></label>
+          <label class="field"><span>Notary</span><span class="money"><input type="number" id="notary-override" min="0" step="10" placeholder="auto"><i>€</i></span></label>
+          <label class="field"><span>Registry</span><span class="money"><input type="number" id="registry-override" min="0" step="10" placeholder="auto"><i>€</i></span></label>
+          <label class="field"><span>Gestoría</span><span class="money"><input type="number" id="gestoria-override" min="0" step="10" value="350"><i>€</i></span></label>
+          <label class="field"><span>Appraisal</span><span class="money"><input type="number" id="appraisal-override" min="0" step="10" value="400"><i>€</i></span></label>
+        </div>
+      </details>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Amortization schedule</h2>
+        <div>
+          <button class="btn small" id="view-toggle">Show monthly</button>
+          <button class="btn small" id="csv">Download CSV</button>
+        </div>
+      </div>
+      <div class="table-wrap tall"><table class="table" id="schedule-table"></table></div>
+    </section>
+
+    <section class="card about">
+      <h2>What this does and does not do</h2>
+      <ul>
+        <li>Payments follow the French system (constant installment), the standard in Spain. On a rate review or a "cut the payment" repayment, the installment is recast over the remaining term.</li>
+        <li>Euribor is the one-year official rate published by Banco de España (series <span id="series-code"></span>), embedded with this page and refreshed by hand. The newest month can be provisional until it appears in the BOE. Nothing here fetches live data.</li>
+        <li>Taxes are the general 2026 rates by region. Reduced rates (young buyers, large families, VPO, disability) are not modeled, and the taxable base can be the cadastral reference value if higher than the price. Notary, registry, gestoría and appraisal figures are typical estimates; adjust them above.</li>
+        <li>Under Law 5/2019 the bank pays the notary, registry, gestoría and AJD of the loan deed itself, so only the purchase side is counted here.</li>
+        <li>This is a simulator, not financial advice. A bank's binding numbers come in its FIPRE/FiCARE pre-contractual documents.</li>
+      </ul>
+      <p class="hint">Sources: Banco de España (Euribor, series <span class="series-code"></span>), idealista ITP 2026 regional guide, Rankia / Guía Fiscal AJD 2026 regional guides, BOE Law 5/2019. Full links in the README.</p>
+    </section>
+  </section>
+</main>
+
+<footer class="foot">
+  <span>Built by <a href="https://github.com/dmcataneo">dmcataneo</a>. All data stays in your browser.</span>
+</footer>
+
+<script src="src/euribor-data.js"></script>
+<script src="src/core.js"></script>
+<script src="src/app.js"></script>
+</body>
+</html>
