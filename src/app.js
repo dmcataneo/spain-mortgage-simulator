@@ -206,8 +206,8 @@
     t.push(tile('', 'Total interest', eur.format(r.sched.totals.interest),
       r.sched.totals.extra ? `with ${eur.format(r.sched.totals.extra)} early repayments` : `over ${r.sched.totals.months} months`));
     const costPerEuro = s.principal > 0 ? r.sched.totals.paid / s.principal : 0;
-    t.push(tile('', 'Cost of the loan', eur.format(r.sched.totals.paid),
-      `${eur2.format(costPerEuro)} per euro borrowed`));
+    t.push(tile('', 'Total paid on the loan', eur.format(r.sched.totals.paid),
+      `${eur2.format(costPerEuro)} per euro borrowed${r.sched.totals.extra ? ' · includes early repayments' : ''}`));
     t.push(tile('', 'LTV', pct.format(r.ltv) + '%', r.ltv > 80 ? 'above the usual 80% resident cap' : r.ltv > 60 ? 'typical range' : 'comfortable'));
     t.push(tile('', 'Payoff', `${Math.ceil(r.sched.totals.months / 12)}y ${r.sched.totals.months % 12}m`,
       r.sched.totals.months < r.months ? `saves ${r.months - r.sched.totals.months} months` : `of ${s.years} years`));
@@ -232,12 +232,14 @@
     const ctx = cv.getContext('2d');
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, W, H);
-    const padL = 56, padR = 10, padT = 12, padB = 24;
-    const w = W - padL - padR, h = H - padT - padB;
+    const padR = 10, padT = 12, padB = 24;
     const maxBal = Math.max(...rows.map((x) => x.balance));
     let cumI = 0;
     const cumInterest = rows.map((x) => (cumI += x.interest + x.extra));
     const maxY = Math.max(maxBal, ...cumInterest);
+    ctx.font = '11px system-ui';
+    const padL = Math.ceil(ctx.measureText(eur.format(maxY)).width) + 14;
+    const w = W - padL - padR, h = H - padT - padB;
     const x = (i) => padL + (i / Math.max(1, rows.length - 1)) * w;
     const y = (v) => padT + h - (v / maxY) * h;
     // gridlines
@@ -287,11 +289,13 @@
     const ctx = cv.getContext('2d');
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, W, H);
-    const padL = 44, padR = 10, padT = 10, padB = 24;
-    const w = W - padL - padR, h = H - padT - padB;
+    const padR = 10, padT = 10, padB = 24;
     const rates = rows.map((x) => x.rate);
     const minR = Math.min(...rates, 0), maxR = Math.max(...rates, 0.5);
     const span = Math.max(0.5, maxR - minR);
+    ctx.font = '11px system-ui';
+    const padL = Math.ceil(ctx.measureText(pct.format(maxR) + '%').width) + 12;
+    const w = W - padL - padR, h = H - padT - padB;
     const x = (i) => padL + (i / Math.max(1, rows.length - 1)) * w;
     const y = (v) => padT + h - ((v - minR) / span) * h;
     ctx.strokeStyle = '#eceadf'; ctx.fillStyle = '#8a929b'; ctx.font = '11px system-ui';
